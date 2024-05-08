@@ -1,0 +1,11 @@
+{
+  "icp_transfer_backend": {
+    "ic": "uxyan-oyaaa-aaaap-qhezq-cai"
+  },
+  "token_transfer_backend": {
+    "ic": "ju4sh-3yaaa-aaaap-ahapa-cai"
+  },
+  "GLYPH": {
+    "ic": "hdtfn-naaaa-aaaam-aciva-cai"
+  }
+}

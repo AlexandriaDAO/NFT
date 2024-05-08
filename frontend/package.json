@@ -1,0 +1,48 @@
+{
+  "name": "ic-rust-nextjs",
+  "version": "1.0.1",
+  "author": "b3hr4d <b3hr4d@live.com>",
+  "description": "Internet Computer Rust + NextJS Template",
+  "keywords": [
+    "nextjs",
+    "rust",
+    "internet computer",
+    "icp",
+    "starter",
+    "dfinity"
+  ],
+  "scripts": {
+    "install:all": "(yarn -v && yarn || npm install) && npm run ic-wasm:install && npm run candid:install",
+    "candid:install": "cargo install candid-extractor",
+    "ic-wasm:install": "cargo install ic-wasm",
+    "build": "next build",
+    "start": "next start",
+    "export": "next build",
+    "dev": "next dev",
+    "dfx:deploy": "dfx deploy factory --with-cycles 90000000000000 && dfx deploy icrc7 --argument '(record{minting_account= opt record {owner = principal \"yog5q-6fxnl-g4zd4-s2nuh-f7fkw-ijb4e-z7dmo-jrarx-uoe2x-wx5sh-dae\";  subaccount = opt blob \"\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\\00\"; }; icrc7_supply_cap= null; icrc7_description= opt \"Immortalize any ebook as nonreplicable IP\"; tx_window= null; permitted_drift= null; icrc7_max_take_value= null;icrc7_max_memo_size= null;icrc7_symbol= \"UCG_test\";icrc7_max_update_batch_size= null;icrc7_max_query_batch_size= null;icrc7_atomic_batch_transfers= null;icrc7_default_take_value= null;icrc7_logo= null;icrc7_name= \"Testing UncensoredGreats Books\"})' && dfx deploy",
+    "dfx:clean": "dfx stop && rm -rf node_modules && rm -rf out && rm -rf target && rm -rf wasm_files && rm Cargo.lock && rm yarn.lock && rm -rf src/declarations",
+    "dfx:stop": "dfx stop",
+    "dfx:pull": "dfx deps pull && dfx deps init",
+    "dfx:start": "dfx start --background --clean",
+    "dfx:build": "sh ./predeploy.sh",
+    "dfx:identity": "dfx deps deploy internet_identity",
+    "dfx:generate": "dfx generate"
+  },
+  "dependencies": {
+    "@dfinity/auth-client": "^0.15.7",
+    "@dfinity/agent": "^0.15.7",
+    "@dfinity/candid": "^0.15.7",
+    "@dfinity/principal": "^0.15.7",
+    "@ic-reactor/react": "^1.2",
+    "next": "^14.0",
+    "react": "^18.2",
+    "react-dom": "^18.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.9.4",
+    "@types/react": "18.2.38",
+    "@types/react-dom": "^18.2.6",
+    "dotenv": "16.3.1",
+    "typescript": "5.3.2"
+  }
+}

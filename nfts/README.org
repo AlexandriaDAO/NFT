@@ -1,0 +1,185 @@
+* Requirements
+
+** [[https://sdk.dfinity.org/docs/quickstart/local-quickstart.html][DFINITY Canister SDK]]
+** [[https://www.rust-lang.org/tools/install][Rust]]
+
+
+* Running Locally
+
+** Prerequirements
+
+#+BEGIN_SRC
+cargo install candid-extractor
+#+END_SRC
+
+** local
+*** start local net
+#+BEGIN_SRC
+  dfx start --clean --background
+#+END_SRC
+
+*** Build && deploy:
+
+#+BEGIN_SRC
+cargo build --release --target wasm32-unknown-unknown --package icrc7
+candid-extractor target/wasm32-unknown-unknown/release/icrc7.wasm > src/icrc7/icrc7.did
+dfx deploy --argument 'record {symbol="TT"; name="Testing Token";}' icrc7
+#+END_SRC
+
+** execution
+*** create identities for tests, if identities already present will skip creation
+will create 2 test identities
+#+BEGIN_SRC
+dfx identity new alice --storage-mode=plaintext || true
+dfx identity new bob --storage-mode=plaintext || true
+YOU=$(dfx identity get-principal)
+ALICE=$(dfx --identity alice identity get-principal)
+BOB=$(dfx --identity bob identity get-principal)
+#+END_SRC
+
+*** set identities for managing and minting
+#+BEGIN_SRC
+dfx canister call icrc7 set_managers \
+    "vec{ principal\"$YOU\"}"
+
+dfx canister call icrc7 set_minters \
+    "vec{ principal\"$YOU\"}"
+#+END_SRC
+
+*** Create token (without metadata for example)
+#+BEGIN_SRC
+dfx canister call icrc7 create_token \
+    "(record{
+        name=\"test\";
+        asset_name=\"test\";
+        asset_content_type=\"test\";
+        asset_content=vec{};
+        author=principal\"$YOU\";
+        metadata=vec{}
+     })"
+#+END_SRC
+
+return newly created token id (1 for now)
+**** output
+#+BEGIN_SRC
+  (variant { Ok = 1 : nat })
+#+END_SRC
+
+*** check the owner of newly created token (should be null for now)
+
+#+BEGIN_SRC
+dfx canister call icrc7 icrc7_owner_of \
+    "(vec{1})"
+#+END_SRC
+
+**** output
+#+BEGIN_SRC
+(vec { null })
+#+END_SRC
+
+*** check metadata of newly created token
+#+BEGIN_SRC
+dfx canister call icrc7 icrc7_token_metadata \
+    "(vec{1})"
+#+END_SRC
+
+**** output
+#+BEGIN_SRC
+(
+  vec {
+    opt vec {
+      record { "asset_content_type"; variant { Text = "test" } };
+      record {
+        "asset_hash";
+        variant {
+          Blob = blob "\a7\ff\c6\f8\bf\1e\d7\66\51\c1\47\56\a0\61\d6\62\f5\80\ff\4d\e4\3b\49\fa\82\d8\0a\4b\80\f8\43\4a"
+        };
+      };
+      record { "asset_name"; variant { Text = "test" } };
+      record { "icrc7:name"; variant { Text = "test" } };
+    };
+  },
+)
+#+END_SRC
+
+*** mint token
+#+BEGIN_SRC
+dfx canister call icrc7 mint \
+    "(record{
+        token_id=1;
+        holders=vec{principal\"$YOU\"}
+    })"
+#+END_SRC
+
+return newly minteded token id (0 for now)
+**** output
+#+BEGIN_SRC
+  (variant { Ok = 0 : nat })
+#+END_SRC
+
+*** check the owner of newly minted token (should be YOU)
+
+#+BEGIN_SRC
+dfx canister call icrc7 icrc7_owner_of \
+    "(vec{0})"
+#+END_SRC
+
+**** output
+#+BEGIN_SRC
+(vec {  principal "fh2to-cedby-m7niz-7lybz-u2sos-zkshv-5rxrf-mnmg7-sxwlm-6jukn-aae" })
+#+END_SRC
+
+*** update token (change name for example)
+#+BEGIN_SRC
+dfx canister call icrc7 update_token \
+    "(record{
+        id=1;
+        name=opt \"updated_test\"
+     })"
+#+END_SRC
+
+*** check metadata of updated token
+#+BEGIN_SRC
+dfx canister call icrc7 icrc7_token_metadata \
+    "(vec{1})"
+#+END_SRC
+
+**** output
+#+BEGIN_SRC
+(
+  vec {
+    opt vec {
+      record { "asset_content_type"; variant { Text = "test" } };
+      record {
+        "asset_hash";
+        variant {
+          Blob = blob "\a7\ff\c6\f8\bf\1e\d7\66\51\c1\47\56\a0\61\d6\62\f5\80\ff\4d\e4\3b\49\fa\82\d8\0a\4b\80\f8\43\4a"
+        };
+      };
+      record { "asset_name"; variant { Text = "test" } };
+      record { "icrc7:name"; variant { Text = "updated_test" } };
+    };
+  },
+)
+#+END_SRC
+
+*** transfer tocken (to Alice)
+#+BEGIN_SRC
+  dfx canister call icrc7 icrc7_transfer \
+    "(vec{record{
+        to=record{owner=principal\"$ALICE\"};
+        token_id=0
+    }})"
+#+END_SRC
+
+*** check the owner of newly minted token (should be ALICE)
+
+#+BEGIN_SRC
+dfx canister call icrc7 icrc7_owner_of \
+    "(vec{0})"
+#+END_SRC
+
+**** output
+#+BEGIN_SRC
+(vec {  principal "evzvx-zcwba-tk6yh-4ileu-6skvi-b7mfn-c4vik-l75ib-jll7k-b6wck-xqe" })
+#+END_SRC
