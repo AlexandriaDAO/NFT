@@ -1,3 +1,3 @@
 [workspace]
-members = ["src/icrc7"]
+members = ["src/icrc7", "src/icrc7_derive"]
 resolver = "2"
