@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "icp-token",
+    "icp-token-derive",
+]

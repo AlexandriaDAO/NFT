@@ -1,185 +1,147 @@
-* Requirements
+* Background
+** Procedural macros
+Procedural macros allow creating syntax extensions as execution of a function. Procedural macros come in one of three flavors:
+    • Function-like macros - custom!(...)
+    • Derive macros - #[derive(CustomDerive)]
+    • Attribute macros - #[CustomAttribute]
+Procedural macros allow you to run code at compile time that operates over Rust syntax, both consuming and producing Rust syntax. You can sort of think of procedural macros as functions from an AST to another AST.
 
-** [[https://sdk.dfinity.org/docs/quickstart/local-quickstart.html][DFINITY Canister SDK]]
-** [[https://www.rust-lang.org/tools/install][Rust]]
+** Derive macros
+Derive macros define new inputs for the derive attribute. These macros can create new items given the token stream of a struct, enum, or union. They can also define derive macro helper attributes.
+Custom derive macros are defined by a public function with the proc_macro_derive attribute and a signature of (TokenStream) -> TokenStream.
+The input TokenStream is the token stream of the item that has the derive attribute on it. The output TokenStream must be a set of items that are then appended to the module or block that the item from the input TokenStream is in.
 
+* NFT
+For create NFT need to create struct:
 
-* Running Locally
-
-** Prerequirements
-
-#+BEGIN_SRC
-cargo install candid-extractor
+#+BEGIN_SRC rust
+  #[derive(Icrc7)]
+  #[icrc7(max_query_batch_size = 100)]/default 100
+  #[icrc7(max_update_batch_size = 20)] //default 20
+  #[icrc7(default_take_value = 10)] //default 10
+  #[icrc7(max_take_value = 100)] //default 100
+  #[icrc7(max_memo_size = 32)] //defaut 32
+  #[icrc7(atomic_batch_transfers = false)] //default false
+  #[icrc7(tx_window = 2 * 60 * 60)] //default 2 hours
+  #[icrc7(permitted_drift = 2*60)] // default 2 min
+  #[icrc7(mutable)]
+  pub struct Token {
+      pub name: String,
+      #[icrc7(mutable)]
+      pub description: Option<String>,
+      pub asset_name: String,
+      pub asset_content_type: String,
+      pub asset_hash: [u8; 32],
+      #[icrc7(mutable)]
+      pub metadata: Metadata,
+      pub author: Principal,
+      pub supply_cap: Option<u32>,
+      pub total_supply: u32,
+      pub created_at: u64,
+      pub updated_at: u64,
+  }
 #+END_SRC
 
-** local
-*** start local net
-#+BEGIN_SRC
-  dfx start --clean --background
+with ~Metadata~ as any ~struct~ or ~enum~ or ~custom type~
+#+BEGIN_SRC rust
+  type Metadata = std::collections::HashMap<String,String>
 #+END_SRC
 
-*** Build && deploy:
-
-#+BEGIN_SRC
-cargo build --release --target wasm32-unknown-unknown --package icrc7
-candid-extractor target/wasm32-unknown-unknown/release/icrc7.wasm > src/icrc7/icrc7.did
-dfx deploy --argument 'record {symbol="TT"; name="Testing Token";}' icrc7
+this will generate all memory code for storage (IPFS by default) and all Icrc7 necessary
+functions
+** query
+#+BEGIN_SRC rust
+  pub fn icrc7_collection_metadata() -> Metadata;
+  pub fn icrc7_symbol() -> String;
+  pub fn icrc7_name() -> String;
+  pub fn icrc7_description() -> Option<String>;
+  pub fn icrc7_logo() -> Option<String>;
+  pub fn icrc7_total_supply() -> Nat;
+  pub fn icrc7_supply_cap() -> Option<Nat>;
+  pub fn icrc7_max_query_batch_size() -> Option<Nat>;
+  pub fn icrc7_max_update_batch_size() -> Option<Nat>;
+  pub fn icrc7_default_take_value() -> Option<Nat>;
+  pub fn icrc7_max_take_value() -> Option<Nat>;
+  pub fn icrc7_max_memo_size() -> Option<Nat>;
+  pub fn icrc7_atomic_batch_transfers() -> Option<bool>;
+  pub fn icrc7_tx_window() -> Option<Nat>;
+  pub fn icrc7_permitted_drift() -> Option<Nat>;
+  pub fn icrc7_token_metadata(token_ids: Vec<Nat>) -> Vec<Option<Metadata>>;
+  pub fn icrc7_owner_of(token_ids: Vec<Nat>) -> Vec<Option<Account>>;
+  pub fn icrc7_balance_of(accounts: Vec<Account>) -> Vec<Nat>;
+  pub fn icrc7_tokens(prev: Option<Nat>, take: Option<Nat>) -> Vec<Nat>;
+  pub fn icrc7_tokens_of(account: Account, prev: Option<Nat>, take: Option<Nat>) -> Vec<Nat>;
+#+END_SRC
+** update
+#+BEGIN_SRC rust
+  pub fn icrc7_transfer(args: Vec<TransferArg>) -> Vec<Option<TransferResult>>;
+  pub fn mint(args: MintArg) -> MintResult;
+  pub fn create_token(args: CreateTokenArg) -> Result<Nat, String>;
+  pub fn update_token(args: UpdateTokenArg) -> Result<(), String>;
 #+END_SRC
 
-** execution
-*** create identities for tests, if identities already present will skip creation
-will create 2 test identities
-#+BEGIN_SRC
-dfx identity new alice --storage-mode=plaintext || true
-dfx identity new bob --storage-mode=plaintext || true
-YOU=$(dfx identity get-principal)
-ALICE=$(dfx --identity alice identity get-principal)
-BOB=$(dfx --identity bob identity get-principal)
+*** with
+#+BEGIN_SRC rust
+  pub struct TransferArg {
+      pub from_subaccount: Option<Subaccount>,
+      pub to: Account,
+      pub token_id: Nat,
+      pub memo: Option<Memo>,
+      pub created_at_time: Option<u64>,
+  }
+
+  pub enum TransferError {
+      NonExistingTokenId,
+      InvalidRecipient,
+      Unauthorized,
+      TooOld,
+      CreatedInFuture { ledger_time: u64 },
+      Duplicate { duplicate_of: Nat },
+      GenericError { error_code: Nat, message: String },
+      GenericBatchError { error_code: Nat, message: String },
+  }
+
+  pub type TransferResult = Result<Nat, TransferError>;
 #+END_SRC
 
-*** set identities for managing and minting
-#+BEGIN_SRC
-dfx canister call icrc7 set_managers \
-    "vec{ principal\"$YOU\"}"
+#+BEGIN_SRC rust
+  pub struct CreateTokenArg {
+      pub name: String,
+      pub description: Option<String>,
+      pub asset_name: String,
+      pub asset_content_type: String,
+      pub asset_content: ByteBuf,
+      pub metadata: Metadata,
+      pub supply_cap: Option<u32>,
+      pub author: Principal,
+      pub challenge: Option<ByteBuf>,
+  }
 
-dfx canister call icrc7 set_minters \
-    "vec{ principal\"$YOU\"}"
+  pub struct UpdateTokenArg {
+      pub id: Nat,
+      pub name: Option<String>,
+      pub description: Option<String>,
+      pub asset_name: Option<String>,
+      pub asset_content_type: Option<String>,
+      pub asset_content: Option<ByteBuf>,
+      pub metadata: Option<Metadata>,
+      pub supply_cap: Option<u32>,
+      pub author: Option<Principal>,
+  }
 #+END_SRC
 
-*** Create token (without metadata for example)
-#+BEGIN_SRC
-dfx canister call icrc7 create_token \
-    "(record{
-        name=\"test\";
-        asset_name=\"test\";
-        asset_content_type=\"test\";
-        asset_content=vec{};
-        author=principal\"$YOU\";
-        metadata=vec{}
-     })"
-#+END_SRC
+#+BEGIN_SRC rust
+  pub struct MintArg {
+      pub token_id: Nat,
+      pub holders: BTreeSet<Principal>,
+  }
 
-return newly created token id (1 for now)
-**** output
-#+BEGIN_SRC
-  (variant { Ok = 1 : nat })
-#+END_SRC
+  pub enum MintError {
+      NonExistingTokenId,
+      SupplyCapReached,
+      GenericBatchError { error_code: Nat, message: String },
+  }
 
-*** check the owner of newly created token (should be null for now)
+  pub type MintResult = Result<Nat, MintError>;
 
-#+BEGIN_SRC
-dfx canister call icrc7 icrc7_owner_of \
-    "(vec{1})"
-#+END_SRC
-
-**** output
-#+BEGIN_SRC
-(vec { null })
-#+END_SRC
-
-*** check metadata of newly created token
-#+BEGIN_SRC
-dfx canister call icrc7 icrc7_token_metadata \
-    "(vec{1})"
-#+END_SRC
-
-**** output
-#+BEGIN_SRC
-(
-  vec {
-    opt vec {
-      record { "asset_content_type"; variant { Text = "test" } };
-      record {
-        "asset_hash";
-        variant {
-          Blob = blob "\a7\ff\c6\f8\bf\1e\d7\66\51\c1\47\56\a0\61\d6\62\f5\80\ff\4d\e4\3b\49\fa\82\d8\0a\4b\80\f8\43\4a"
-        };
-      };
-      record { "asset_name"; variant { Text = "test" } };
-      record { "icrc7:name"; variant { Text = "test" } };
-    };
-  },
-)
-#+END_SRC
-
-*** mint token
-#+BEGIN_SRC
-dfx canister call icrc7 mint \
-    "(record{
-        token_id=1;
-        holders=vec{principal\"$YOU\"}
-    })"
-#+END_SRC
-
-return newly minteded token id (0 for now)
-**** output
-#+BEGIN_SRC
-  (variant { Ok = 0 : nat })
-#+END_SRC
-
-*** check the owner of newly minted token (should be YOU)
-
-#+BEGIN_SRC
-dfx canister call icrc7 icrc7_owner_of \
-    "(vec{0})"
-#+END_SRC
-
-**** output
-#+BEGIN_SRC
-(vec {  principal "fh2to-cedby-m7niz-7lybz-u2sos-zkshv-5rxrf-mnmg7-sxwlm-6jukn-aae" })
-#+END_SRC
-
-*** update token (change name for example)
-#+BEGIN_SRC
-dfx canister call icrc7 update_token \
-    "(record{
-        id=1;
-        name=opt \"updated_test\"
-     })"
-#+END_SRC
-
-*** check metadata of updated token
-#+BEGIN_SRC
-dfx canister call icrc7 icrc7_token_metadata \
-    "(vec{1})"
-#+END_SRC
-
-**** output
-#+BEGIN_SRC
-(
-  vec {
-    opt vec {
-      record { "asset_content_type"; variant { Text = "test" } };
-      record {
-        "asset_hash";
-        variant {
-          Blob = blob "\a7\ff\c6\f8\bf\1e\d7\66\51\c1\47\56\a0\61\d6\62\f5\80\ff\4d\e4\3b\49\fa\82\d8\0a\4b\80\f8\43\4a"
-        };
-      };
-      record { "asset_name"; variant { Text = "test" } };
-      record { "icrc7:name"; variant { Text = "updated_test" } };
-    };
-  },
-)
-#+END_SRC
-
-*** transfer tocken (to Alice)
-#+BEGIN_SRC
-  dfx canister call icrc7 icrc7_transfer \
-    "(vec{record{
-        to=record{owner=principal\"$ALICE\"};
-        token_id=0
-    }})"
-#+END_SRC
-
-*** check the owner of newly minted token (should be ALICE)
-
-#+BEGIN_SRC
-dfx canister call icrc7 icrc7_owner_of \
-    "(vec{0})"
-#+END_SRC
-
-**** output
-#+BEGIN_SRC
-(vec {  principal "evzvx-zcwba-tk6yh-4ileu-6skvi-b7mfn-c4vik-l75ib-jll7k-b6wck-xqe" })
 #+END_SRC
