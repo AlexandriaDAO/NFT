@@ -1,5 +1,5 @@
 [package]
-name = "uuu"
+name = "test_token"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,3 +11,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 candid = "0.10"
 icp-token = { path = "icp-token" }
+maplit = "1"
