@@ -1,13 +1,15 @@
-use icp_token::{Icrc7, Storage};
 use serde::{Deserialize, Serialize};
+use uncensored_greats_dao::{Icrc7, Metadata, Storage};
 
-#[derive(icp_token::candid::CandidType, Clone, Hash, Default, Serialize, Deserialize)]
+#[derive(
+    uncensored_greats_dao::candid::CandidType, Clone, Hash, Default, Serialize, Deserialize,
+)]
 pub struct TestToken {
     pub name: String,
     pub description: Option<String>,
 }
 
-impl icp_token::Metadata for TestToken {
+impl Metadata for TestToken {
     fn metadata(&self) -> String {
         serde_json::to_string(&serde_json::json!({
             "name": self.name,
