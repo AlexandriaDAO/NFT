@@ -439,5 +439,5 @@ where
     }
 }
 
-pub use derive::Icrc7;
-pub use derive::Storage;
+pub use ugd_derive::Icrc7;
+pub use ugd_derive::Storage;
