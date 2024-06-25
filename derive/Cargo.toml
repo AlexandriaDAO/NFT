@@ -1,10 +1,10 @@
 [package]
 description = "ICRC implemenations derive macroses"
 authors = ["Roman <leshchuk.roma0524@gmail.com>"]
-license = "Apache-2.0 License"
+license = "Apache-2.0"
 categories = ["Internet Computer", "NFC", "ICRC7"]
-repository = "https://github.com/UncensoredGreats/NFT"
-homepage = "https://github.com/UncensoredGreats/NFT"
+repository = "https://github.com/UncensoredGreats/NFT/derive"
+homepage = "https://github.com/UncensoredGreats/NFT/derive"
 name = "ugd-derive"
 version = "0.1.0"
 edition = "2021"
